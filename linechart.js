@@ -10,6 +10,8 @@ function CreateLineChart(id,width,height,opt){
 	if (!opt.lineSize) opt.lineSize = 2;
 	if (!opt.legendHeight) opt.legendHeight = 20;
 
+	opt.outer_bgcolor = '#ffffff';
+
 	if (opt.minGap < 0) opt.minGap = 0;
 	var minGap = opt.minGap;
 	
@@ -120,27 +122,31 @@ function CreateLineChart(id,width,height,opt){
 	function draw_line(series){
 		var data = series.data;
 		var color = get_color(series);
-		var arr = [], px=-1e100, py=-1e100;
+		var px=-1e100, py=-1e100;
 		var xs = W / (logx? (log2(xmax) - log2(xmin)) : (xmax - xmin));
 		var ys = H / (logy? (log2(ymax) - log2(ymin)) : (ymax - ymin));
 		var ps = '';
-		if (use_lines){
-			for (var i=0; i<data.length; i++){
-				var xp = logx? (log2(data[i][0]) - log2(xmin)) : (data[i][0] - xmin);
-				var yp = logy? (log2(data[i][1]) - log2(ymin)) : (data[i][1] - ymin);
-				var x = opt.xlabelw + xp * xs, y = height - (opt.ylabelw + yp * ys);
-				if (i+1 < data.length && minGap){
-					var dx = x - px, dy = y - py;
-					if (dx*dx + dy*dy < minGap*minGap){ continue; }
-				}
-				if (x < opt.xlabelw){ continue; }
-//				if (y < opt.ylabelw) continue;
-				
-				ps += ((!ps)?"M":"L") + x + " " + y;
-				px = x; py = y;
+		for (var i=0; i<data.length; i++){
+			var xp = logx? (log2(data[i][0]) - log2(xmin)) : (data[i][0] - xmin);
+			var yp = logy? (log2(data[i][1]) - log2(ymin)) : (data[i][1] - ymin);
+			var x = opt.xlabelw + xp * xs, y = height - (opt.ylabelw + yp * ys);
+			if (i+1 < data.length && minGap){
+				var dx = x - px, dy = y - py;
+				if (dx*dx + dy*dy < minGap*minGap){ continue; }
 			}
+			ps += ((!ps)?"M":"L") + x + " " + y;
+			px = x; py = y;
 		}
 		paper.path(ps).attr('stroke-width',opt.lineSize).attr('stroke',color);
+	}
+
+	function draw_markers(series){
+		var data = series.data;
+		var color = get_color(series);
+		var px=-1e100, py=-1e100;
+		var xs = W / (logx? (log2(xmax) - log2(xmin)) : (xmax - xmin));
+		var ys = H / (logy? (log2(ymax) - log2(ymin)) : (ymax - ymin));
+		var boty = height - opt.ylabelw - H;
 		for (var i=0,px=py=-1e100; i<data.length; i++){
 			var xp = logx? (log2(data[i][0]) - log2(xmin)) : (data[i][0] - xmin);
 			var yp = logy? (log2(data[i][1]) - log2(ymin)) : (data[i][1] - ymin);
@@ -149,7 +155,8 @@ function CreateLineChart(id,width,height,opt){
 				var dx = x - px, dy = y - py;
 				if (dx*dx + dy*dy < minGap*minGap) continue;
 			}
-			if (x < opt.xlabelw) continue;
+			if (x < opt.xlabelw || x > opt.xlabelw + W) continue;
+			if (y < boty || y > boty + H) continue;
 			draw_marker(series,x,y,opt.markerSize,color);
 			px = x; py = y;
 		}
@@ -294,47 +301,79 @@ function CreateLineChart(id,width,height,opt){
 	}
 
 	function format_ticks(t,fmt){
+		var nt = [];
 		for (var i=0; i<t.length; i++){
-			t[i] = [t[i], format10(t[i], fmt)];
+			nt.push([t[i], format10(t[i], fmt)]);
 		}
-		return t;
+		return nt;
+	}
+
+	function get_xt(){
+		var xt = logx? get_log_ticks(xmin,xmax,opt.xtype) : get_ticks(calc_pow(W, opt.xgridw, xmin, xmax, opt.xtype), xmin, xmax, opt.xtype);
+		var xs = W / (logx? (log2(xmax) - log2(xmin)) : (xmax - xmin));
+		if (opt.xticks) xt = format_ticks(opt.xticks, opt.xtype);
+		while (W * 2 < xt.length * opt.xgridw) xt = half_array(xt);
+		return [xt, xs];
+	}
+
+	function get_yt(){
+		var yt = logy? get_log_ticks(ymin,ymax,opt.ytype) : get_ticks(calc_pow(H, opt.ygridw, ymin, ymax, opt.ytype), ymin, ymax, opt.ytype);
+		var ys = H / (logy? (log2(ymax) - log2(ymin)) : (ymax - ymin));
+		if (opt.yticks) yt = format_ticks(opt.yticks, opt.ytype);
+		while (H * 2 < yt.length * opt.ygridw) yt = half_array(yt);
+		return [yt, ys];
+	}
+
+	function crop_base(){
+		var c = paper.rect(0, 0, opt.xlabelw, height);
+		c.attr('fill',opt.outer_bgcolor);
+		c.attr('stroke-width',0);
+		var c = paper.rect(opt.xlabelw + W, 0, width - (opt.xlabelw+W), height);
+		c.attr('fill',opt.outer_bgcolor);
+		c.attr('stroke-width',0);
+		var c = paper.rect(0, 0, width, (height - opt.ylabelw - H));
+		c.attr('fill',opt.outer_bgcolor);
+		c.attr('stroke-width',0);
+		var c = paper.rect(0, height - opt.ylabelw, width, opt.ylabelw);
+		c.attr('fill',opt.outer_bgcolor);
+		c.attr('stroke-width',0);
+	}
+
+	function draw_xylabels(){
+		var t = get_xt(), xt = t[0], xs = t[1];
+		for (var i=0; i<xt.length; i++){
+			var xp = logx? (log2(xt[i][0]) - log2(xmin)) : (xt[i][0] - xmin);
+			var x = opt.xlabelw + xp * xs;
+			var txt = paper.text(x, height-opt.ylabelw+14, xt[i][1]);
+			txt.attr('align','center');
+			txt.attr('font',"12px sans-serif");
+		}
+		var t = get_yt(), yt = t[0], ys = t[1];
+		for (var i=0; i<yt.length; i++){
+			var yp = logy? (log2(yt[i][0]) - log2(ymin)) : (yt[i][0] - ymin);
+			var y = height - (opt.ylabelw + yp * ys);
+			var txt = paper.text(opt.xlabelw - 7, y, yt[i][1]);
+			txt.attr('text-anchor','end');
+			txt.attr('font',"12px sans-serif");
+		}
 	}
 
 	function draw_grids(){
-		var xt = logx? get_log_ticks(xmin,xmax,opt.xtype) : get_ticks(calc_pow(W, opt.xgridw, xmin, xmax, opt.xtype), xmin, xmax, opt.xtype);
-		var yt = logy? get_log_ticks(ymin,ymax,opt.ytype) : get_ticks(calc_pow(H, opt.ygridw, ymin, ymax, opt.ytype), ymin, ymax, opt.ytype);
-		var xs = W / (logx? (log2(xmax) - log2(xmin)) : (xmax - xmin));
-		var ys = H / (logy? (log2(ymax) - log2(ymin)) : (ymax - ymin));
-
-		if (opt.yticks){
-			yt = format_ticks(opt.yticks, opt.ytype);
-		}
-		if (opt.xticks){
-			xt = format_ticks(opt.xticks, opt.xtype);
-		}
-
-		while (W * 2 < xt.length * opt.xgridw) xt = half_array(xt);
-		while (H * 2 < yt.length * opt.ygridw) yt = half_array(yt);
+		var t = get_xt(), xt = t[0], xs = t[1];
 		for (var i=0; i<xt.length; i++){
 			var xp = logx? (log2(xt[i][0]) - log2(xmin)) : (xt[i][0] - xmin);
 			var x = opt.xlabelw + xp * xs;
 			paper.path(
 				"M" + x + " " + (height-(opt.ylabelw)) +
 				"L" + x + " " + (height-(opt.ylabelw+H))).attr('stroke-width',0.2);
-			var txt = paper.text(x, height-opt.ylabelw+14, xt[i][1]);
-			txt.attr('align','center');
-			txt.attr('font',"12px sans-serif");
 		}
-		var ynticks = Math.ceil(H / opt.ygridw);
+		var t = get_yt(), yt = t[0], ys = t[1];
 		for (var i=0; i<yt.length; i++){
 			var yp = logy? (log2(yt[i][0]) - log2(ymin)) : (yt[i][0] - ymin);
 			var y = height - (opt.ylabelw + yp * ys);
 			paper.path(
 				"M" + (opt.xlabelw) + " " + y +
 				"L" + (opt.xlabelw + W) + " " + y).attr('stroke-width',0.2);
-			var txt = paper.text(opt.xlabelw - 7, y, yt[i][1]);
-			txt.attr('text-anchor','end');
-			txt.attr('font',"12px sans-serif");
 		}
 	}
 
@@ -450,8 +489,11 @@ function CreateLineChart(id,width,height,opt){
 		series = preprocess(series,dopt);		
 		draw_axes();
 		draw_grids();
+		if (use_lines) $.each(series, function(i,ser){ draw_line(ser); });
+		crop_base();
+		draw_xylabels();
 		$.each(series, function(i,ser){ add_legend(ser.legend); });
-		$.each(series, function(i,ser){ draw_line(ser); });
+		$.each(series, function(i,ser){ draw_markers(ser); });
 		if (legend_pos) draw_legends(series);
 		draw_xytitles(dopt.xlabel, dopt.ylabel, dopt.title);
 	}
