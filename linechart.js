@@ -92,6 +92,7 @@ function CreateLineChart(id,width,height,opt){
 
 	opt.legendi = {};
 	if (!opt.legends) opt.legends = [];
+	if (!opt['legend-styles']) opt['legend-styles'] = {};
 	for (var i=0; i<opt.legends.length; i++){
 		opt.legendi[opt.legends[i]] = i;	
 	}	
@@ -106,15 +107,21 @@ function CreateLineChart(id,width,height,opt){
 	
 	function draw_marker(series,x,y,size,color){
 		var f = marker[series.marker];
+		var s = opt['legend-styles'];
 		if (!f){
-			var idx = opt.legendi[series.legend] % markers.length;
-			f = marker[markers[idx]];
+			if (s[series.legend]){
+				f = marker[s[series.legend][0]];
+			} else {
+				var idx = opt.legendi[series.legend] % markers.length;
+				f = marker[markers[idx]];
+			}
 		}
 		return f(x,y,size,color);
 	}
 	
 	function get_color(series){
 		if (series.color) return series.color;
+		if (opt['legend-styles'][series.legend]) return opt['legend-styles'][series.legend][1];
 		var m = opt.legendi[series.legend] % colors.length;
 		return colors[m];
 	}
@@ -325,18 +332,15 @@ function CreateLineChart(id,width,height,opt){
 	}
 
 	function crop_base(){
-		var c = paper.rect(0, 0, opt.xlabelw, height);
-		c.attr('fill',opt.outer_bgcolor);
-		c.attr('stroke-width',0);
-		var c = paper.rect(opt.xlabelw + W, 0, width - (opt.xlabelw+W), height);
-		c.attr('fill',opt.outer_bgcolor);
-		c.attr('stroke-width',0);
-		var c = paper.rect(0, 0, width, (height - opt.ylabelw - H));
-		c.attr('fill',opt.outer_bgcolor);
-		c.attr('stroke-width',0);
-		var c = paper.rect(0, height - opt.ylabelw, width, opt.ylabelw);
-		c.attr('fill',opt.outer_bgcolor);
-		c.attr('stroke-width',0);
+		function rect(x,y,w,h){
+			var c = paper.rect(x, y, w, h);
+			c.attr('fill',opt.outer_bgcolor);
+			c.attr('stroke-width',0);
+		}
+		rect(0, 0, opt.xlabelw, height);
+		rect(opt.xlabelw + W, 0, width - (opt.xlabelw+W), height);
+		rect(0, 0, width, (height - opt.ylabelw - H));
+		rect(0, height - opt.ylabelw, width, opt.ylabelw);
 	}
 
 	function draw_xylabels(){
@@ -378,10 +382,11 @@ function CreateLineChart(id,width,height,opt){
 	}
 
 	function add_legend(legend){
-		if (typeof opt.legendi[legend] == 'undefined'){
-			opt.legendi[legend] = opt.legends.length;
-			opt.legends.push(legend);
-		}
+		if (!opt['legend-styles'][legend])
+			if (typeof opt.legendi[legend] == 'undefined'){
+				opt.legendi[legend] = opt.legends.length;
+				opt.legends.push(legend);
+			}
 	}
 	
 	function draw_xytitles(xlabel, ylabel, title){
