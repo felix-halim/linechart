@@ -203,8 +203,20 @@ function CreateLineChart(id,width,height,opt){
 		return trunc_dec(""+x,1) + ' secs';
 	}
 
+	var superscript = [0,0,'\u00B2','\u00B3','\u2074','\u2075','\u2076','\u2077','\u2078','\u2079'];
+
 	function format10(x,fmt){
 		if (fmt === 'time') return format_time(x);
+		if (fmt === 'pow10'){
+			if (x == 1) return 1;
+			if (x == 10) return 10;
+			var pw = 100;
+			for (var i=2; i<=9; i++){
+				if (pw == x) return '10'+superscript[i];
+				pw *= 10;
+			}
+		}
+
 		if (x >= 1000000000) return dec10(x/1000000000) + 'B';
 		if (x >= 1000000) return dec10(x/1000000) + 'M';
 		if (x >= 1000) return dec10(x/1000) + 'K';
@@ -362,6 +374,8 @@ function CreateLineChart(id,width,height,opt){
 		switch (legend_pos){
 			case 'nw' : bx = opt.xlabelw + 10; break;
 			case 'sw' : bx = opt.xlabelw + 10; by = opt.marginTop + H - h - 20; break;
+			case 'cw' : bx = opt.xlabelw + 10; by = (by + (opt.marginTop + H - h - 20))/2; break;
+			case 'ce' : by = (by + (opt.marginTop + H - h - 20))/2; break;
 			case 'se' : by = opt.marginTop + H - h - 20; break;
 		}
 		var c = paper.rect(bx, by, w, h + 10);
