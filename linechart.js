@@ -213,11 +213,13 @@ function CreateLineChart(id,width,height,opt){
 		if (x == 1) return '1 sec';
 		if (x >= 60*60) return trunc_dec(''+x/60/60, 1) + ' hrs';
 		if (x >= 60) return trunc_dec(''+x/60, 1) + ' mins';
-		if (x >= 1) return trunc_dec(''+x, 1) + ' secs';
-		return trunc_dec(""+x,1) + ' secs';
+		if (x >= 0.1) return trunc_dec(''+x, 1) + ' secs';
+		if (x >= 0.001) return trunc_dec(''+(x*1e3), 1) + ' ms';
+		if (x >= 0.000001) return trunc_dec(''+(x*1e6), 1) + ' \u00B5s';
+		return trunc_dec(''+(x*1e9), 1) + ' ns';
 	}
 
-	var superscript = [0,0,'\u00B2','\u00B3','\u2074','\u2075','\u2076','\u2077','\u2078','\u2079'];
+	var superscript = ['\u2070','\u00B9','\u00B2','\u00B3','\u2074','\u2075','\u2076','\u2077','\u2078','\u2079'];
 
 	function format10(x,fmt){
 		if (fmt === 'time') return format_time(x);
@@ -225,10 +227,17 @@ function CreateLineChart(id,width,height,opt){
 			if (x == 1) return 1;
 			if (x == 10) return 10;
 			var pw = 100;
-			for (var i=2; i<=9; i++){
+			for (var i=2; i<9; i++){
 				if (pw == x) return '10'+superscript[i];
 				pw *= 10;
 			}
+			if (x >= 1e20 - 1e10) return 'inf';
+			pw = 1e19 - 1e10;
+			for (var i=19; i>9; i--){
+				if (x >= pw) return '10\u00B9'+superscript[i-10];
+				pw /= 10;
+			}
+			return '10'+superscript[9];;
 		}
 
 		if (x >= 1000000000) return dec10(x/1000000000) + 'B';
@@ -494,10 +503,10 @@ function CreateLineChart(id,width,height,opt){
 		series = preprocess(series,dopt);		
 		draw_axes();
 		draw_grids();
+		$.each(series, function(i,ser){ add_legend(ser.legend); });
 		if (use_lines) $.each(series, function(i,ser){ draw_line(ser); });
 		crop_base();
 		draw_xylabels();
-		$.each(series, function(i,ser){ add_legend(ser.legend); });
 		$.each(series, function(i,ser){ draw_markers(ser); });
 		if (legend_pos) draw_legends(series);
 		draw_xytitles(dopt.xlabel, dopt.ylabel, dopt.title);
