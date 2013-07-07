@@ -16,6 +16,8 @@ function CreateLineChart(id,width,height,opt){
 		outer_bgcolor: '#fff',
 	}, opt);
 
+	opt.outer_bgcolor = '#ffffff';
+
 	if (opt.minGap < 0) opt.minGap = 0;
 	var minGap = opt.minGap;
 	
@@ -182,6 +184,7 @@ function CreateLineChart(id,width,height,opt){
 				x = px + vx*ratio;
 				y = py + vy*ratio;
 			}
+			// if (x < opt.xlabelw || x > opt.xlabelw + W) continue;
 			if (y < boty || y > boty + H) continue;
 			draw_marker(series,x,y,opt.markerSize,color);
 			px = x; py = y;
@@ -229,6 +232,9 @@ function CreateLineChart(id,width,height,opt){
 		if (x >= 1) return trunc_dec(''+x, 1) + ' secs';
 		if (x >= 0.01) return trunc_dec(''+(x*1e3), 1) + ' ms';
 		if (x >= 0.001) return trunc_dec(''+(x*1e6), 1) + ' \u00B5s';
+		// if (x >= 0.1) return trunc_dec(''+x, 1) + ' secs';
+		// if (x >= 0.001) return trunc_dec(''+(x*1e3), 1) + ' ms';
+		// if (x >= 0.000001) return trunc_dec(''+(x*1e6), 1) + ' \u00B5s';
 		return trunc_dec(''+(x*1e9), 1) + ' ns';
 	}
 
@@ -401,6 +407,13 @@ function CreateLineChart(id,width,height,opt){
 					"M" + x + " " + (height-(opt.ylabelw+H)) +
 					"L" + x + " " + (height-(opt.ylabelw+H)+tick_length)).attr('stroke-width',sw);
 			}
+		// var t = get_xt(), xt = t[0], xs = t[1];
+		// for (var i=0; i<xt.length; i++){
+		// 	var xp = logx? (log2(xt[i][0]) - log2(xmin)) : (xt[i][0] - xmin);
+		// 	var x = opt.xlabelw + xp * xs;
+		// 	paper.path(
+		// 		"M" + x + " " + (height-(opt.ylabelw)) +
+		// 		"L" + x + " " + (height-(opt.ylabelw+H))).attr('stroke-width',0.2);
 		}
 		var t = get_yt(), yt = t[0], ys = t[1];
 		for (var i=0; i<yt.length; i++){
@@ -418,6 +431,9 @@ function CreateLineChart(id,width,height,opt){
 					"M" + (opt.xlabelw + W) + " " + y +
 					"L" + (opt.xlabelw + W-tick_length) + " " + y).attr('stroke-width',sw);
 			}
+			// paper.path(
+			// 	"M" + (opt.xlabelw) + " " + y +
+			// 	"L" + (opt.xlabelw + W) + " " + y).attr('stroke-width',0.2);
 		}
 	}
 
@@ -498,6 +514,11 @@ function CreateLineChart(id,width,height,opt){
 				p.attr('stroke-width',opt.lineSize);
 				draw_marker(ser,bx+25, by+opt.legendHeight/2,opt.markerSize, color);
 			}
+			// var color = get_color(ser);
+			// var p = paper.path('M' + (bx+10) + ' ' + (by+opt.legendHeight/2) + 'L' + (bx+40) + ' ' + (by+opt.legendHeight/2));
+			// p.attr('stroke',color);
+			// p.attr('stroke-width',opt.lineSize);
+			// draw_marker(ser,bx+25, by+opt.legendHeight/2,opt.markerSize, color);
 			var txt = paper.text(bx + 45, by+opt.legendHeight/2, ser.legend);
 			txt.attr('text-anchor','start');
 			txt.attr('font',"14px courier new");
